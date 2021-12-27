@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import co.siegerand.stocklevelservice.exception.InvalidInputException;
+import co.siegerand.stocklevelservice.exception.NotFoundException;
 import co.siegerand.stocklevelservice.model.BookPurchase;
 import co.siegerand.stocklevelservice.model.StockLevel;
 import co.siegerand.stocklevelservice.model.StockReplenishment;
@@ -45,13 +46,14 @@ public class StockLevelServiceImpl implements StockLevelService {
         if (bookId < 1) throw new InvalidInputException("Book id must be positive");
 
         return Mono.just(getStockLevelForBookBlocking(bookId))
+                .switchIfEmpty(Mono.error(() -> new NotFoundException("No book with provided id present. Id: " + bookId)))
                 .subscribeOn(scheduler);
     }
 
     private StockLevel getStockLevelForBookBlocking(int bookId) {
         Optional<StockLevel> optionalStockLevel = stockLevelRepository.findByBookId(bookId);
         final StockLevel stockLevel = optionalStockLevel.orElse(null);
-        optionalStockLevel.orElseThrow(() -> new InvalidInputException("Invalid book id"));
+        optionalStockLevel.orElseThrow(() -> new NotFoundException("Invalid book id"));
         logger.info("Stock level returned for book: {}, stock level: {}", bookId, stockLevel);
         return stockLevel;
     }
@@ -105,14 +107,15 @@ public class StockLevelServiceImpl implements StockLevelService {
         if (stockLevelRepository.findByBookId(newBook.getBookId()).isPresent())
             throw new InvalidInputException("Book with id " + newBook.getBookId() + " already exists in inventory");
 
-        stockLevelRepository.save(new StockLevelEntity(newBook));
-        return newBook;
+        return new StockLevel(stockLevelRepository.save(new StockLevelEntity(newBook)));
     }
 
     @Override
     public void deleteBookFromInventory(int bookId) {
-        // TODO Auto-generated method stub
+        // check if book id valid
+        if (bookId < 1) throw new InvalidInputException("Invalid book id provided. Id: " + bookId);
         
+        scheduler.schedule(() -> stockLevelRepository.deleteById(bookId));
     }
     
 }
