@@ -10,11 +10,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+                properties = {"eureka.client.enabled=false"})
 class StockLevelServiceApplicationTests extends MySqlDbContainer {
 
     private final BookPurchaseRepository bookPurchaseRepository;
@@ -42,6 +45,25 @@ class StockLevelServiceApplicationTests extends MySqlDbContainer {
     }
 
     @Test
+    void getStockLevelForBook() {
+        int bookId = 1;
+
+        // create book
+        createBookHelper(bookId, 2);
+
+        // get book
+        final StockLevel responseBody = webTestClient.get()
+                .uri("/inventory/" + bookId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(StockLevel.class).returnResult().getResponseBody();
+
+        Assertions.assertNotNull(responseBody);
+        Assertions.assertEquals(2, responseBody.getStockLevel());
+        Assertions.assertEquals(bookId, responseBody.getBookId());
+    }
+
+    @Test
     void addBookToInventoryAndCheckItWasAddedSuccessfully() {
         int bookId = 1;
         int stockLevel = 2;
@@ -61,22 +83,22 @@ class StockLevelServiceApplicationTests extends MySqlDbContainer {
     }
 
     @Test
-    void getStockLevelForBook() {
+    void deleteBook() {
         int bookId = 1;
-
         // create book
-        createBookHelper(bookId, 2);
+        createBookHelper(bookId, 10);
 
-        // get book
-        final StockLevel responseBody = webTestClient.get()
-                .uri("/inventory/" + bookId)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(StockLevel.class).returnResult().getResponseBody();
+        // delete book
+        webTestClient.delete()
+            .uri("/inventory/" + bookId)
+            .exchange()
+            .expectStatus().isOk();
 
-        Assertions.assertNotNull(responseBody);
-        Assertions.assertEquals(2, responseBody.getStockLevel());
-        Assertions.assertEquals(bookId, responseBody.getBookId());
+        // confirm deletion
+        webTestClient.get()
+            .uri("/inventory/" + bookId)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     // UTIL METHODS
