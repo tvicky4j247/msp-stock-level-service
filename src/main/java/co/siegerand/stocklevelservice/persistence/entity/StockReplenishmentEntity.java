@@ -28,7 +28,7 @@ public class StockReplenishmentEntity {
     private int version;
 
     private int bookId;
-    private int quantityReplenished;
+    private long quantityReplenished;
     private ZonedDateTime timestamp;
 
     private StockReplenishmentEntity(int bookId, int quantityReplenished, ZonedDateTime timeStamp) {

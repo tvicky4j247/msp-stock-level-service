@@ -13,7 +13,7 @@ import co.siegerand.stocklevelservice.persistence.entity.StockReplenishmentEntit
 public class StockReplenishment {
 
     private final int bookId;
-    private final int quantityReplenished;
+    private final long quantityReplenished;
     private final ZonedDateTime timestamp;
 
     public StockReplenishment(StockReplenishmentEntity entity) {
