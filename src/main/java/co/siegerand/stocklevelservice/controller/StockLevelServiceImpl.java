@@ -8,6 +8,7 @@ import co.siegerand.stocklevelservice.persistence.entity.StockReplenishmentEntit
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 import co.siegerand.stocklevelservice.exception.InvalidInputException;
 import co.siegerand.stocklevelservice.exception.NotFoundException;
@@ -51,29 +52,20 @@ public class StockLevelServiceImpl implements StockLevelService {
     }
 
     private StockLevel getStockLevelForBookBlocking(int bookId) {
-        Optional<StockLevel> optionalStockLevel = stockLevelRepository.findByBookId(bookId);
-        final StockLevel stockLevel = optionalStockLevel.orElse(null);
+        Optional<StockLevelEntity> optionalStockLevel = stockLevelRepository.findByBookId(bookId);
+        final StockLevelEntity stockLevel = optionalStockLevel.orElse(null);
         optionalStockLevel.orElseThrow(() -> new NotFoundException("Invalid book id"));
         logger.info("Stock level returned for book: {}, stock level: {}", bookId, stockLevel);
-        return stockLevel;
+        return new StockLevel(stockLevel);
     }
 
     @Override
-    public void purchaseBook(BookPurchase bookPurchase) {
+    public Mono<StockLevel> purchaseBook(BookPurchase bookPurchase) {
 
-        scheduler.schedule(() -> {
-            // check book purchase is valid
-            final Optional<StockLevel> optionalStockLevel = stockLevelRepository.findByBookId(bookPurchase.getBookId());
-            if (optionalStockLevel.isEmpty())
-                throw new InvalidInputException("Invalid book id provided: " + bookPurchase.getBookId());
-            StockLevel level = optionalStockLevel.get();
+        return Mono.just(bookPurchase)
+            .map(purchase -> purchaseBookInternal(bookPurchase))
+            .subscribeOn(scheduler);
 
-            // update stock level
-            level.updateStockLevel(bookPurchase);
-            bookPurchaseRepository.save(new BookPurchaseEntity(bookPurchase));
-            logger.info("Book with id: {} purchased successfully by user with id: {}. Quantity purchased: {}",
-                    bookPurchase.getBookId(), bookPurchase.getUserId(), bookPurchase.getQuantityPurchased());
-        });
     }
 
     @Override
@@ -83,17 +75,25 @@ public class StockLevelServiceImpl implements StockLevelService {
     }
 
     private StockLevel replenishStockBlocking(StockReplenishment replenishment) {
-        Optional<StockLevel> optionalStockLevel = stockLevelRepository.findByBookId(replenishment.getBookId());
+        Optional<StockLevelEntity> optionalStockLevel = stockLevelRepository.findByBookId(replenishment.getBookId());
         if (optionalStockLevel.isEmpty())
             throw new InvalidInputException("Invalid book id provided: " + replenishment.getBookId());
 
-        final StockLevel stockLevel = optionalStockLevel.get();
-        stockLevel.updateStockLevel(replenishment);
-        stockLevelRepository.save(new StockLevelEntity(stockLevel));
+        final StockLevelEntity stockLevel = optionalStockLevel.get();
+
+        // check if replenishment valid
+        if (validateBookReplenishment(replenishment, stockLevel)) {
+            stockLevel.setStockLevel(stockLevel.getStockLevel() + replenishment.getQuantityReplenished());
+        } else {
+            throw new InvalidInputException(String.format("Stock replenishment failed. Max possible replenishment: %d Requested: %d", 
+                                                            Long.MAX_VALUE - stockLevel.getStockLevel(), replenishment.getQuantityReplenished()));
+        }
+
+        stockLevelRepository.save(stockLevel);
         stockReplenishmentRepository.save(new StockReplenishmentEntity(replenishment));
         logger.info("Stock levels of book with id: {} replenished successfully with: {} books. Current stock: {}",
                 replenishment.getBookId(), replenishment.getQuantityReplenished(), stockLevel.getStockLevel());
-        return stockLevel;
+        return new StockLevel(stockLevel);
     }
 
     @Override
@@ -115,7 +115,47 @@ public class StockLevelServiceImpl implements StockLevelService {
         // check if book id valid
         if (bookId < 1) throw new InvalidInputException("Invalid book id provided. Id: " + bookId);
         
-        scheduler.schedule(() -> stockLevelRepository.deleteById(bookId));
+        scheduler.schedule(() -> {
+            try {
+                stockLevelRepository.deleteById(bookId);
+            } catch (EmptyResultDataAccessException err) {
+                logger.info(err.getMessage());
+            }
+            
+        });
+    }
+
+    // UTIL METHODS
+    private StockLevel purchaseBookInternal(BookPurchase bookPurchase) {
+        // check book purchase is valid
+        final Optional<StockLevelEntity> optionalStockLevelEntity = stockLevelRepository.findByBookId(bookPurchase.getBookId());
+        if (optionalStockLevelEntity.isEmpty())
+            throw new InvalidInputException("Invalid book id provided: " + bookPurchase.getBookId());
+        StockLevelEntity stockLevelEntity = optionalStockLevelEntity.get();
+
+        // validate purchase
+        if (validateBookPurchase(bookPurchase, stockLevelEntity)) {
+            // update stock levels
+            stockLevelEntity.setStockLevel(stockLevelEntity.getStockLevel() - bookPurchase.getQuantityPurchased());
+        } else {
+            throw new InvalidInputException("Purchase quantity for " + bookPurchase.getBookId() + " greater than available stock");
+        }
+
+        // update entity in db
+        stockLevelRepository.save(stockLevelEntity);
+        bookPurchaseRepository.save(new BookPurchaseEntity(bookPurchase));
+        logger.info("Book with id: {} purchased successfully by user with id: {}. Quantity purchased: {}",
+                bookPurchase.getBookId(), bookPurchase.getUserId(), bookPurchase.getQuantityPurchased());
+        
+        return getStockLevelForBookBlocking(bookPurchase.getBookId());
+    }
+
+    private boolean validateBookPurchase(BookPurchase bookPurchase, StockLevelEntity entity) {
+        return bookPurchase.getQuantityPurchased() <= entity.getStockLevel();
+    }
+
+    private boolean validateBookReplenishment(StockReplenishment replenishment, StockLevelEntity entity) {
+        return replenishment.getQuantityReplenished() <= Long.MAX_VALUE - entity.getStockLevel();
     }
     
 }
