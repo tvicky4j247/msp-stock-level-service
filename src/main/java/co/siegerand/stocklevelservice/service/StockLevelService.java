@@ -18,7 +18,7 @@ public interface StockLevelService {
 
 
     @PostMapping(value = "/inventory/buy", consumes = "application/json")
-    void purchaseBook(@RequestBody BookPurchase bookPurchase);
+    Mono<StockLevel> purchaseBook(@RequestBody BookPurchase bookPurchase);
 
 
     @PostMapping(value = "/inventory/replenish", 
