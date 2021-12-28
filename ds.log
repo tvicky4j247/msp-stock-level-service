@@ -1,0 +1,29 @@
+[33mcommit 28c30a5232fcac6488d79427bea46d211bf099b5[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m)[m
+Author: Victor <tvicky4j247@gmail.com>
+Date:   Mon Dec 27 13:23:17 2021 -0500
+
+    Miscellaneous changes to pom.xml and application.properties
+
+[33mcommit eb854b38937878b365d4f2f8f77e59f70a8078f7[m
+Author: Victor <tvicky4j247@gmail.com>
+Date:   Mon Dec 27 13:22:56 2021 -0500
+
+    Implementation changes to pass failing delete test
+
+[33mcommit 6d663cf831e70783357541c146dc23ea1384da65[m
+Author: Victor <tvicky4j247@gmail.com>
+Date:   Mon Dec 27 13:22:15 2021 -0500
+
+    Adds test of stock level deletion
+
+[33mcommit 023069034ac400027beb8c0ff040d2b17be0d48f[m
+Author: Victor <tvicky4j247@gmail.com>
+Date:   Mon Dec 27 13:20:12 2021 -0500
+
+    Fixes bug in GlobalExceptionHandler that caused error handling to fail
+
+[33mcommit 9ebe75f37b1419ec46dc8a0007a8b37f4b49b73f[m
+Author: Victor <tvicky4j247@gmail.com>
+Date:   Wed Dec 22 12:46:35 2021 -0500
+
+    Initial Commit
