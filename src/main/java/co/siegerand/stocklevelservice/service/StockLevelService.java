@@ -33,6 +33,6 @@ public interface StockLevelService {
     Mono<StockLevel> addBookToInventory(@RequestBody StockLevel newBook);
 
     @DeleteMapping("/inventory/{id}")
-    void deleteBookFromInventory(@PathVariable(value = "id") int bookId);
+    Mono<Void> deleteBookFromInventory(@PathVariable(value = "id") int bookId);
 
 }

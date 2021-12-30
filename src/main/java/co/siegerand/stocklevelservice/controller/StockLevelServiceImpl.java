@@ -111,18 +111,14 @@ public class StockLevelServiceImpl implements StockLevelService {
     }
 
     @Override
-    public void deleteBookFromInventory(int bookId) {
+    public Mono<Void> deleteBookFromInventory(int bookId) {
         // check if book id valid
         if (bookId < 1) throw new InvalidInputException("Invalid book id provided. Id: " + bookId);
+
+        return Mono.fromRunnable(() -> stockLevelRepository.deleteById(bookId))
+            .subscribeOn(scheduler)
+            .flatMap(e -> Mono.empty());
         
-        scheduler.schedule(() -> {
-            try {
-                stockLevelRepository.deleteById(bookId);
-            } catch (EmptyResultDataAccessException err) {
-                logger.info(err.getMessage());
-            }
-            
-        });
     }
 
     // UTIL METHODS
