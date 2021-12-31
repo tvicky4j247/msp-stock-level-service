@@ -122,7 +122,7 @@ public class StockLevelServiceImpl implements StockLevelService {
 
     // UTIL METHODS
     private void deleteBookFromInventoryInternal(int bookId) {
-        stockLevelRepository.deleteById(bookId);
+        stockLevelRepository.deleteAllByBookId(bookId);
         stockReplenishmentRepository.deleteAllByBookId(bookId);
         bookPurchaseRepository.deleteAllByBookId(bookId);
     }
