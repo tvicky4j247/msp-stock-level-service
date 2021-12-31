@@ -8,7 +8,6 @@ import co.siegerand.stocklevelservice.persistence.entity.StockReplenishmentEntit
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 
 import co.siegerand.stocklevelservice.exception.InvalidInputException;
 import co.siegerand.stocklevelservice.exception.NotFoundException;
@@ -115,13 +114,19 @@ public class StockLevelServiceImpl implements StockLevelService {
         // check if book id valid
         if (bookId < 1) throw new InvalidInputException("Invalid book id provided. Id: " + bookId);
 
-        return Mono.fromRunnable(() -> stockLevelRepository.deleteById(bookId))
+        return Mono.fromRunnable(() -> deleteBookFromInventoryInternal(bookId))
             .subscribeOn(scheduler)
             .flatMap(e -> Mono.empty());
         
     }
 
     // UTIL METHODS
+    private void deleteBookFromInventoryInternal(int bookId) {
+        stockLevelRepository.deleteById(bookId);
+        stockReplenishmentRepository.deleteAllByBookId(bookId);
+        bookPurchaseRepository.deleteAllByBookId(bookId);
+    }
+
     private StockLevel purchaseBookInternal(BookPurchase bookPurchase) {
         // check book purchase is valid
         final Optional<StockLevelEntity> optionalStockLevelEntity = stockLevelRepository.findByBookId(bookPurchase.getBookId());
