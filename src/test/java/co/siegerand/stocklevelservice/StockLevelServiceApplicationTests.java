@@ -1,8 +1,10 @@
 package co.siegerand.stocklevelservice;
 
 import co.siegerand.stocklevelservice.model.BookPurchase;
+import co.siegerand.stocklevelservice.model.BookPurchaseList;
 import co.siegerand.stocklevelservice.model.StockLevel;
 import co.siegerand.stocklevelservice.model.StockReplenishment;
+import co.siegerand.stocklevelservice.model.StockReplenishmentList;
 import co.siegerand.stocklevelservice.persistence.entity.StockLevelEntity;
 import co.siegerand.stocklevelservice.persistence.repository.BookPurchaseRepository;
 import co.siegerand.stocklevelservice.persistence.repository.StockLevelRepository;
@@ -187,6 +189,78 @@ class StockLevelServiceApplicationTests extends MySqlDbContainer {
             .uri("/inventory/" + bookId)
             .exchange()
             .expectStatus().isOk();
+    }
+
+    @Test
+    void getAllBookPurchases() {
+        int bookId = 1;
+
+        // create book
+        createBookHelper(bookId, 10);
+
+        // purchase book
+        webTestClient.post()
+            .uri("/inventory/buy")
+            .accept(MediaType.APPLICATION_JSON)
+            .bodyValue(new BookPurchase(1, bookId, 5, ZonedDateTime.now()))
+            .exchange()
+            .expectStatus().isOk()
+            .expectBody(StockLevel.class).returnResult().getResponseBody();
+
+        // purchase book again
+        webTestClient.post()
+            .uri("/inventory/buy")
+            .accept(MediaType.APPLICATION_JSON)
+            .bodyValue(new BookPurchase(1, bookId, 2, ZonedDateTime.now()))
+            .exchange()
+            .expectStatus().isOk()
+            .expectBody(StockLevel.class).returnResult().getResponseBody();
+
+        // get book purchase history
+        BookPurchaseList bookPurchaseList = webTestClient.get()
+                .uri("/history/purchase/" + bookId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BookPurchaseList.class).returnResult().getResponseBody();
+
+        // confirm size
+        Assertions.assertNotNull(bookPurchaseList);
+        Assertions.assertEquals(2, bookPurchaseList.getBookPurchaseList().size());
+    }
+
+    @Test
+    void getAllBookReplenishments() {
+        int bookId = 1;
+
+        // create book
+        createBookHelper(bookId, 10);
+
+        // replenish stock twice
+        webTestClient.post()
+            .uri("/inventory/replenish")
+            .accept(MediaType.APPLICATION_JSON)
+            .bodyValue(new StockReplenishment(bookId, 10, ZonedDateTime.now()))
+            .exchange()
+            .expectStatus().isOk()
+            .expectBody(StockLevel.class).returnResult().getResponseBody();
+        
+        webTestClient.post()
+            .uri("/inventory/replenish")
+            .accept(MediaType.APPLICATION_JSON)
+            .bodyValue(new StockReplenishment(bookId, 5, ZonedDateTime.now()))
+            .exchange()
+            .expectStatus().isOk()
+            .expectBody(StockLevel.class).returnResult().getResponseBody();
+
+        // confirm stock replenishment data
+        StockReplenishmentList list = webTestClient.get()
+            .uri("/history/replenishment/" + bookId)
+            .exchange()
+            .expectStatus().isOk()
+            .expectBody(StockReplenishmentList.class).returnResult().getResponseBody();
+
+        Assertions.assertNotNull(list);
+        Assertions.assertEquals(2, list.getStockReplenishmentList().size());
     }
 
     // UTIL METHODS
