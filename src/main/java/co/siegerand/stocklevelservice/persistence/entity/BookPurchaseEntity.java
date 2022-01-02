@@ -12,7 +12,6 @@ import co.siegerand.stocklevelservice.model.BookPurchase;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 
 @Getter
 @EqualsAndHashCode

@@ -10,5 +10,6 @@ import lombok.Getter;
 public class StockReplenishmentList {
     
     private List<StockReplenishment> stockReplenishmentList;
+    private String serviceAddress;
 
 }

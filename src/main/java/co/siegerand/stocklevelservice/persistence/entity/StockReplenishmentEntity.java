@@ -31,7 +31,7 @@ public class StockReplenishmentEntity {
     private long quantityReplenished;
     private ZonedDateTime timestamp;
 
-    private StockReplenishmentEntity(int bookId, int quantityReplenished, ZonedDateTime timeStamp) {
+    public StockReplenishmentEntity(int bookId, int quantityReplenished, ZonedDateTime timeStamp) {
 
         id = bookId;
         this.quantityReplenished = quantityReplenished;

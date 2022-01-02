@@ -9,5 +9,6 @@ import lombok.Getter;
 @Getter
 public class BookPurchaseList {
     
-    private List<BookPurchase> BookPurchaseList;
+    private List<BookPurchase> bookPurchaseList;
+    private String serviceAddress;
 }

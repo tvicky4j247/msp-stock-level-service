@@ -2,7 +2,6 @@ package co.siegerand.stocklevelservice.model;
 
 import co.siegerand.stocklevelservice.exception.InvalidInputException;
 import co.siegerand.stocklevelservice.persistence.entity.StockLevelEntity;
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
