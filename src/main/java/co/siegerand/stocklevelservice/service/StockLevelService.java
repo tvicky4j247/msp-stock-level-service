@@ -7,10 +7,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import co.siegerand.stocklevelservice.model.BookPurchase;
+import co.siegerand.stocklevelservice.model.BookPurchaseList;
 import co.siegerand.stocklevelservice.model.StockLevel;
 import co.siegerand.stocklevelservice.model.StockReplenishment;
+import co.siegerand.stocklevelservice.model.StockReplenishmentList;
 import reactor.core.publisher.Mono;
-import org.springframework.web.bind.annotation.RequestParam;
 
 
 public interface StockLevelService {
@@ -38,9 +39,9 @@ public interface StockLevelService {
     Mono<Void> deleteBookFromInventory(@PathVariable(value = "id") int bookId);
 
     @GetMapping(value="/history/purchase/{bookId}")
-    public Mono<BookPurchase> getPurchaseHistoryForBook(@PathVariable int bookId);
+    public Mono<BookPurchaseList> getPurchaseHistoryForBook(@PathVariable int bookId);
 
     @GetMapping("/history/replenishment/{bookId}")
-    public Mono<StockReplenishment> getStockReplenishmentForBook(@PathVariable int bookId);    
+    public Mono<StockReplenishmentList> getStockReplenishmentForBook(@PathVariable int bookId);    
 
 }
