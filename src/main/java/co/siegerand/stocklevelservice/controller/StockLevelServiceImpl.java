@@ -1,6 +1,7 @@
 package co.siegerand.stocklevelservice.controller;
 
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import co.siegerand.stocklevelservice.persistence.entity.BookPurchaseEntity;
 import co.siegerand.stocklevelservice.persistence.entity.StockLevelEntity;
@@ -12,8 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import co.siegerand.stocklevelservice.exception.InvalidInputException;
 import co.siegerand.stocklevelservice.exception.NotFoundException;
 import co.siegerand.stocklevelservice.model.BookPurchase;
+import co.siegerand.stocklevelservice.model.BookPurchaseList;
 import co.siegerand.stocklevelservice.model.StockLevel;
 import co.siegerand.stocklevelservice.model.StockReplenishment;
+import co.siegerand.stocklevelservice.model.StockReplenishmentList;
 import co.siegerand.stocklevelservice.persistence.repository.BookPurchaseRepository;
 import co.siegerand.stocklevelservice.persistence.repository.StockLevelRepository;
 import co.siegerand.stocklevelservice.persistence.repository.StockReplenishmentRepository;
@@ -120,7 +123,38 @@ public class StockLevelServiceImpl implements StockLevelService {
         
     }
 
+    @Override
+    public Mono<BookPurchaseList> getPurchaseHistoryForBook(int bookId) {
+        if (bookId < 1) throw new InvalidInputException("Invalid book id provided. Id: " + bookId);
+
+        return Mono.just(bookId)
+                .map(id -> getPurchaseHistoryForBookInternal(bookId))
+                .subscribeOn(scheduler)
+                .onErrorMap(err -> new InvalidInputException(err));
+    }
+
+    @Override
+    public Mono<StockReplenishmentList> getStockReplenishmentForBook(int bookId) {
+        if (bookId < 1) throw new InvalidInputException("Invalid book id provided. Id: " + bookId);
+        
+        return Mono.just(bookId)
+                .map(id -> getStockReplenishmentListForBookInternal(bookId))
+                .onErrorMap(InvalidInputException::new)
+                .subscribeOn(scheduler);
+    }
+
+    
     // UTIL METHODS
+    private StockReplenishmentList getStockReplenishmentListForBookInternal(int bookId) {
+        return new StockReplenishmentList(stockReplenishmentRepository.findAllByBookId(bookId).stream()
+                    .map(e -> new StockReplenishment(e)).collect(Collectors.toList()), "");
+    }
+
+    private BookPurchaseList getPurchaseHistoryForBookInternal(int bookId) {
+        return new BookPurchaseList(bookPurchaseRepository.findAllByBookId(bookId).stream()
+                    .map(e -> new BookPurchase(e)).collect(Collectors.toList()), "");
+    }
+
     private void deleteBookFromInventoryInternal(int bookId) {
         stockLevelRepository.deleteAllByBookId(bookId);
         stockReplenishmentRepository.deleteAllByBookId(bookId);
